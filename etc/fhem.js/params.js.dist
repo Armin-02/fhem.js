@@ -78,3 +78,15 @@ exports.readDBvalues =
 ];
 
 exports.message404 = '<html><head><title>404 Not Found</title></head><body bgcolor="white"><center><h1>404 Not Found</h1></center></body></html>';
+
+exports.remoteProxy =
+{
+   active: true,                       //activate websocket client
+   url : "wss://echo.websocket.org",   //websocket to connect to
+   auth: "s3cr3t",
+   key : "s3cretw0rD",                 //authentication key
+   cregex : "^get$|^set$",             //allowed commands
+   dregex : "^esszimmer$",             //allowed rooms
+   eregex : "^(on|off)$",              //allowed events
+   reqpermin : "180",                  //max requests per minute (will be enforced per second)
+}

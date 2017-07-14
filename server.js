@@ -274,6 +274,73 @@ var defListeners = function(socket) {
 };
 
 // -------------------------------------------------------------------
+// setup websocket client
+// -------------------------------------------------------------------
+
+
+mylog('Remote Proxy active: ' + params.remoteProxy.active, 0);
+if(params.remoteProxy.active) {
+    const rpio = require('socket.io-client');
+    const rpsocket = rpio.connect((params.remoteProxy.url), {reconnect: true, transports:['websocket'] });
+
+    var rpfheminit = {
+        "auth": params.remoteProxy.auth,
+        "key": params.remoteProxy.key,
+        "cregex" : params.remoteProxy.cregex,
+        "dregex" : params.remoteProxy.dregex,
+        "eregex" : params.remoteProxy.eregex,
+        "reqpermin" : params.remoteProxy.reqpermin,
+    };
+
+    console.log(rpfheminit);
+
+    rpsocket.on('connect', function(){
+        mylog('connected to remote websocket ' + params.remoteProxy.url, 0);
+        rpsocket.emit('fheminit', rpfheminit);
+    });
+
+    rpsocket.on('event', function(data){
+        mylog(data, 0);
+    });
+
+    rpsocket.on('command', function(cmd) {
+        console.log(cmd);
+        var rawcommand = JSON.parse(cmd).command
+        console.log(rawcommand);
+
+        // establish telnet connection to fhem server
+        mylog("request command forward", 0);
+        var fhemcmd = net.connect({ port: params.fhemPort, host: params.fhemHost }, function() {
+            fhemcmd.write(rawcommand + ';exit\r\n');
+        });
+
+        var answerStr = '';
+        fhemcmd.on('data', function(response) {
+            console.log('on data');
+            answerStr += response.toString();
+        });
+
+        fhemcmd.on('end', function() {
+            var arrayResp = answerStr.split("\n");
+            console.log(answerStr);
+        });
+
+        fhemcmd.on('error', function() {
+            console.log('on error');
+            fhemcmd.destroy();
+            funcs.mylog('error: telnet connection failed', 0);
+        });
+
+    });
+
+    rpsocket.on('disconnect', function(){
+        mylog('disconnected (reconnecting)', 0);
+    });
+
+    console.log(params.remoteProxy.url);
+}
+
+// -------------------------------------------------------------------
 // setup permanent connection to fhem
 // -------------------------------------------------------------------
 
@@ -469,7 +536,7 @@ function emitVersion(sockets) {
 }
 
 // -------------------------------------------------------------------
-// init somwe things
+// init some things
 // -------------------------------------------------------------------
 function init() {
 
